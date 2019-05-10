@@ -1,53 +1,138 @@
-#include <iostream>
+#include <algorithm>
 
-using namespace std;
-
-template<class type, class ptype> type* partition(type* first, type* last, ptype pred)
+template <class dtype, class ptype>
+inline void med3_unchecked(dtype* first, dtype* mid, dtype* last, ptype& less)
 {
-	const auto( pivot ) { first + rand() % ( distance(first, last) ) };
-	swap(*pivot, *last);
-	auto ( delimiter ) { first };
-	for( auto( iter ) { first }; iter <= last - 1; iter++ )
+	if( less(*mid, *first) )
 	{
-		if( pred(*iter, *last) )
+		std::iter_swap(mid, first);
+	}
+	if( less(*last, *mid) )
+	{
+		std::iter_swap(last, mid);
+		if( less(*mid, *first) )
 		{
-			swap(*delimiter, *iter);
-			delimiter++;
+			std::iter_swap(mid, first);
 		}
 	}
-	swap(*( delimiter ), *last);
-	return delimiter;
 }
 
-
-template<class type, class ptype> void quick_sort(type* first, type *last, ptype pred)
+template<class dtype, class ptype>
+void unchecked_median(dtype* first, dtype* mid, dtype* last, ptype& less)
 {
-	if( first < last )
+	if( 40 < last - first )
 	{
-		auto delimiter = partition(first, last, pred);
-		quick_sort(first, delimiter - 1, pred);
-		quick_sort(delimiter + 1, last, pred);
+		auto step = ( last - first + 1 ) / 8;
+		med3_unchecked(first, first + step, first + 2 * step, less);
+		med3_unchecked(mid - step, mid, mid + step, less);
+		med3_unchecked(last - 2 * step, last - step, last, less);
+		med3_unchecked(first + step, mid, last - step, less);
 	}
+	else
+	{
+		med3_unchecked(first, mid, last, less);
+	}
+
 }
 
-template<class type, class ptype> type kth_element(type* first, type* kth, type* last, ptype pred)
+template<class dtype, class ptype>
+std::pair<dtype*, dtype*> partition(dtype* first, dtype* last, ptype& pred)
 {
-	while( distance(first, last) > 3 && !( *first == *kth || *last == *kth ) )
+	dtype* mid = first + ( last - first ) / 2;
+	unchecked_median(first, mid, last - 1, pred);
+	dtype* pfirst = mid;
+	dtype* plast = pfirst + 1;
+
+	while( first < pfirst && !pred(*pfirst, *( pfirst - 1 )) )
 	{
-		auto delimiter = partition(first, last, pred);
-		if( delimiter < kth )
+		--pfirst;
+	}
+	while( plast < last && !pred(*pfirst, *plast) )
+	{
+		++plast;
+	}
+
+	dtype* gfirst = plast;
+	dtype* glast = pfirst;
+
+	while( true )
+	{
+		for( ; gfirst < last; ++gfirst )
 		{
-			if (*delimiter == *kth)
+			if( pred(*gfirst, *pfirst) )
 			{
-				return *delimiter;
+				break;
 			}
-			first = delimiter;
+			else if( plast++ != gfirst )
+			{
+				std::iter_swap(plast - 1, gfirst);
+			}
 		}
-		else if( delimiter > kth )
+		for( ; first < glast; --glast )
 		{
-			last = delimiter;
+			if( pred(*pfirst, *( glast - 1 )) )
+			{
+				break;
+			}
+			else if( --pfirst != glast - 1 )
+			{
+				std::iter_swap(pfirst, glast - 1);
+			}
+		}
+		if( glast == first && gfirst == last )
+		{
+			return ( std::pair<dtype*, dtype*>(pfirst, plast) );
+		}
+
+		if( glast == first )
+		{
+			if( plast != gfirst )
+			{
+				std::iter_swap(pfirst, plast);
+			}
+			++plast;
+			std::iter_swap(pfirst++, gfirst++);
+		}
+		else if( gfirst == last )
+		{
+			if( --glast != --pfirst )
+			{
+				std::iter_swap(glast, plast);
+			}
+			std::iter_swap(pfirst, --plast);
+		}
+		else
+		{
+			std::iter_swap(gfirst++, --glast);
 		}
 	}
-	quick_sort(first, last, pred);
-	return *kth;
+}
+
+template<class dtype, class ptype>
+void nth_element(dtype* first, dtype* nth, dtype* last, ptype pred)
+{
+	const int isort_max = 32;
+
+	if( nth == last )
+		return;
+
+	while( isort_max < last - first )
+	{
+		auto cut = partition(first, last, pred);
+
+		if( cut.second <= nth )
+		{
+			first = cut.second;
+		}
+		else if( cut.first <= nth )
+		{
+			return;
+		}
+		else
+		{
+			last = cut.first;
+		}
+	}
+
+	std::sort(first, last, pred);
 }
