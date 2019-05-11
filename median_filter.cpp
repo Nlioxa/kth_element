@@ -12,15 +12,7 @@ void median_filter_(type* signal, int signal_size, int window_size)
 	for( auto ( cell ) { window }, ( median_cell ) { window + window_size / 2 }, ( end_cell ) { window + window_size - 1 };
 		cell <= end_cell; cell++ )
 	{
-		if( cell < median_cell )
-		{
-			*cell = 0;
-		}
-		else
-		{
-			auto ( indent ) { cell - median_cell };
-			*cell = *( signal + indent );
-		}
+		*cell = cell < median_cell ? *( signal + cell - median_cell ) : 0;
 	}
 
 	// assign pointer to each cell of the window
