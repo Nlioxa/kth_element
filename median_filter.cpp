@@ -12,7 +12,7 @@ void median_filter_(type* signal, int signal_size, int window_size)
 	for( auto ( cell ) { window }, ( median_cell ) { window + window_size / 2 }, ( end_cell ) { window + window_size - 1 };
 		cell <= end_cell; cell++ )
 	{
-		*cell = cell < median_cell ? *( signal + cell - median_cell ) : 0;
+		*cell = cell < median_cell ? 0 : *( signal + ( cell - median_cell ) );
 	}
 
 	// assign pointer to each cell of the window
